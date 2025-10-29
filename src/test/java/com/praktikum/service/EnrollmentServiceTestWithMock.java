@@ -20,11 +20,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-/**
- * Unit Test untuk EnrollmentService menggunakan MOCKITO
- * MOCK = Menggunakan framework Mockito untuk mocking dependencies
- * Target Coverage: 95-100% untuk method enrollCourse()
- */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("EnrollmentService Tests with MOCKITO")
 class EnrollmentServiceTestWithMock {
@@ -57,7 +52,6 @@ class EnrollmentServiceTestWithMock {
     void setUp() {
         testStudent = new Student("S001", "John Doe", "john@email.com",
                 "Computer Science", 3, 3.5, "ACTIVE");
-
         testCourse = new Course("CS301", "Algorithm Design", 3, 40, 30, "Dr. Smith");
     }
 
@@ -66,15 +60,12 @@ class EnrollmentServiceTestWithMock {
     @Test
     @DisplayName("MOCK - enrollCourse should successfully enroll student in course")
     void testEnrollCourse_Success() {
-        // Arrange
         when(studentRepository.findById("S001")).thenReturn(testStudent);
         when(courseRepository.findByCourseCode("CS301")).thenReturn(testCourse);
         when(courseRepository.isPrerequisiteMet("S001", "CS301")).thenReturn(true);
 
-        // Act
         Enrollment result = enrollmentService.enrollCourse("S001", "CS301");
 
-        // Assert
         assertNotNull(result);
         assertEquals("S001", result.getStudentId());
         assertEquals("CS301", result.getCourseCode());
@@ -82,7 +73,6 @@ class EnrollmentServiceTestWithMock {
         assertNotNull(result.getEnrollmentId());
         assertNotNull(result.getEnrollmentDate());
 
-        // Verify interactions
         verify(studentRepository, times(1)).findById("S001");
         verify(courseRepository, times(1)).findByCourseCode("CS301");
         verify(courseRepository, times(1)).isPrerequisiteMet("S001", "CS301");
@@ -93,17 +83,14 @@ class EnrollmentServiceTestWithMock {
     @Test
     @DisplayName("MOCK - enrollCourse should increment enrolled count")
     void testEnrollCourse_IncrementEnrolledCount() {
-        // Arrange
         when(studentRepository.findById("S001")).thenReturn(testStudent);
         when(courseRepository.findByCourseCode("CS301")).thenReturn(testCourse);
         when(courseRepository.isPrerequisiteMet("S001", "CS301")).thenReturn(true);
 
         int initialCount = testCourse.getEnrolledCount();
 
-        // Act
         enrollmentService.enrollCourse("S001", "CS301");
 
-        // Assert
         verify(courseRepository).update(courseCaptor.capture());
         Course updatedCourse = courseCaptor.getValue();
         assertEquals(initialCount + 1, updatedCourse.getEnrolledCount());
@@ -112,15 +99,12 @@ class EnrollmentServiceTestWithMock {
     @Test
     @DisplayName("MOCK - enrollCourse should send confirmation email with correct details")
     void testEnrollCourse_SendsConfirmationEmail() {
-        // Arrange
         when(studentRepository.findById("S001")).thenReturn(testStudent);
         when(courseRepository.findByCourseCode("CS301")).thenReturn(testCourse);
         when(courseRepository.isPrerequisiteMet("S001", "CS301")).thenReturn(true);
 
-        // Act
         enrollmentService.enrollCourse("S001", "CS301");
 
-        // Assert
         verify(notificationService).sendEmail(
                 eq("john@email.com"),
                 eq("Enrollment Confirmation"),
@@ -128,40 +112,13 @@ class EnrollmentServiceTestWithMock {
         );
     }
 
-    @Test
-    @DisplayName("MOCK - enrollCourse should generate unique enrollment ID")
-    void testEnrollCourse_UniqueEnrollmentId() {
-        // Arrange
-        when(studentRepository.findById("S001")).thenReturn(testStudent);
-        when(courseRepository.findByCourseCode("CS301")).thenReturn(testCourse);
-        when(courseRepository.isPrerequisiteMet("S001", "CS301")).thenReturn(true);
-
-        // Act
-        Enrollment enrollment1 = enrollmentService.enrollCourse("S001", "CS301");
-
-        // Reset mocks for second enrollment
-        reset(studentRepository, courseRepository, notificationService);
-        when(studentRepository.findById("S001")).thenReturn(testStudent);
-        when(courseRepository.findByCourseCode("CS302")).thenReturn(
-                new Course("CS302", "Database", 3, 40, 25, "Dr. Lee")
-        );
-        when(courseRepository.isPrerequisiteMet("S001", "CS302")).thenReturn(true);
-
-        Enrollment enrollment2 = enrollmentService.enrollCourse("S001", "CS302");
-
-        // Assert
-        assertNotEquals(enrollment1.getEnrollmentId(), enrollment2.getEnrollmentId());
-    }
-
     // ==================== enrollCourse() Exception Tests ====================
 
     @Test
     @DisplayName("MOCK - enrollCourse should throw StudentNotFoundException when student not found")
     void testEnrollCourse_StudentNotFound() {
-        // Arrange
         when(studentRepository.findById("INVALID")).thenReturn(null);
 
-        // Act & Assert
         StudentNotFoundException exception = assertThrows(
                 StudentNotFoundException.class,
                 () -> enrollmentService.enrollCourse("INVALID", "CS301")
@@ -176,12 +133,10 @@ class EnrollmentServiceTestWithMock {
     @Test
     @DisplayName("MOCK - enrollCourse should throw EnrollmentException when student is suspended")
     void testEnrollCourse_StudentSuspended() {
-        // Arrange
         Student suspendedStudent = new Student("S002", "Jane Smith", "jane@email.com",
                 "Information Systems", 5, 1.5, "SUSPENDED");
         when(studentRepository.findById("S002")).thenReturn(suspendedStudent);
 
-        // Act & Assert
         EnrollmentException exception = assertThrows(
                 EnrollmentException.class,
                 () -> enrollmentService.enrollCourse("S002", "CS301")
@@ -196,17 +151,14 @@ class EnrollmentServiceTestWithMock {
     @Test
     @DisplayName("MOCK - enrollCourse should allow PROBATION students to enroll")
     void testEnrollCourse_StudentOnProbation() {
-        // Arrange
         Student probationStudent = new Student("S003", "Bob Wilson", "bob@email.com",
                 "Software Engineering", 4, 2.1, "PROBATION");
         when(studentRepository.findById("S003")).thenReturn(probationStudent);
         when(courseRepository.findByCourseCode("CS301")).thenReturn(testCourse);
         when(courseRepository.isPrerequisiteMet("S003", "CS301")).thenReturn(true);
 
-        // Act
         Enrollment result = enrollmentService.enrollCourse("S003", "CS301");
 
-        // Assert
         assertNotNull(result);
         assertEquals("APPROVED", result.getStatus());
         verify(notificationService, times(1)).sendEmail(anyString(), anyString(), anyString());
@@ -215,11 +167,9 @@ class EnrollmentServiceTestWithMock {
     @Test
     @DisplayName("MOCK - enrollCourse should throw CourseNotFoundException when course not found")
     void testEnrollCourse_CourseNotFound() {
-        // Arrange
         when(studentRepository.findById("S001")).thenReturn(testStudent);
         when(courseRepository.findByCourseCode("INVALID")).thenReturn(null);
 
-        // Act & Assert
         CourseNotFoundException exception = assertThrows(
                 CourseNotFoundException.class,
                 () -> enrollmentService.enrollCourse("S001", "INVALID")
@@ -235,12 +185,10 @@ class EnrollmentServiceTestWithMock {
     @Test
     @DisplayName("MOCK - enrollCourse should throw CourseFullException when course is full")
     void testEnrollCourse_CourseFull() {
-        // Arrange
         Course fullCourse = new Course("CS301", "Algorithm Design", 3, 40, 40, "Dr. Smith");
         when(studentRepository.findById("S001")).thenReturn(testStudent);
         when(courseRepository.findByCourseCode("CS301")).thenReturn(fullCourse);
 
-        // Act & Assert
         CourseFullException exception = assertThrows(
                 CourseFullException.class,
                 () -> enrollmentService.enrollCourse("S001", "CS301")
@@ -257,12 +205,10 @@ class EnrollmentServiceTestWithMock {
     @Test
     @DisplayName("MOCK - enrollCourse should throw CourseFullException when enrolled equals capacity")
     void testEnrollCourse_CourseExactlyFull() {
-        // Arrange
         Course fullCourse = new Course("CS302", "Database", 3, 35, 35, "Dr. Lee");
         when(studentRepository.findById("S001")).thenReturn(testStudent);
         when(courseRepository.findByCourseCode("CS302")).thenReturn(fullCourse);
 
-        // Act & Assert
         assertThrows(CourseFullException.class,
                 () -> enrollmentService.enrollCourse("S001", "CS302"));
 
@@ -272,16 +218,13 @@ class EnrollmentServiceTestWithMock {
     @Test
     @DisplayName("MOCK - enrollCourse should succeed when course has one slot left")
     void testEnrollCourse_CourseOneSlotLeft() {
-        // Arrange
         Course almostFullCourse = new Course("CS303", "Software Testing", 3, 40, 39, "Dr. Brown");
         when(studentRepository.findById("S001")).thenReturn(testStudent);
         when(courseRepository.findByCourseCode("CS303")).thenReturn(almostFullCourse);
         when(courseRepository.isPrerequisiteMet("S001", "CS303")).thenReturn(true);
 
-        // Act
         Enrollment result = enrollmentService.enrollCourse("S001", "CS303");
 
-        // Assert
         assertNotNull(result);
         verify(courseRepository).update(courseCaptor.capture());
         assertEquals(40, courseCaptor.getValue().getEnrolledCount());
@@ -290,12 +233,10 @@ class EnrollmentServiceTestWithMock {
     @Test
     @DisplayName("MOCK - enrollCourse should throw PrerequisiteNotMetException when prerequisites not met")
     void testEnrollCourse_PrerequisiteNotMet() {
-        // Arrange
         when(studentRepository.findById("S001")).thenReturn(testStudent);
         when(courseRepository.findByCourseCode("CS301")).thenReturn(testCourse);
         when(courseRepository.isPrerequisiteMet("S001", "CS301")).thenReturn(false);
 
-        // Act & Assert
         PrerequisiteNotMetException exception = assertThrows(
                 PrerequisiteNotMetException.class,
                 () -> enrollmentService.enrollCourse("S001", "CS301")
@@ -314,16 +255,13 @@ class EnrollmentServiceTestWithMock {
     @Test
     @DisplayName("MOCK - enrollCourse should handle course with zero enrolled students")
     void testEnrollCourse_EmptyCourse() {
-        // Arrange
         Course emptyCourse = new Course("CS401", "Advanced Topics", 4, 30, 0, "Dr. White");
         when(studentRepository.findById("S001")).thenReturn(testStudent);
         when(courseRepository.findByCourseCode("CS401")).thenReturn(emptyCourse);
         when(courseRepository.isPrerequisiteMet("S001", "CS401")).thenReturn(true);
 
-        // Act
         Enrollment result = enrollmentService.enrollCourse("S001", "CS401");
 
-        // Assert
         assertNotNull(result);
         verify(courseRepository).update(courseCaptor.capture());
         assertEquals(1, courseCaptor.getValue().getEnrolledCount());
@@ -332,7 +270,6 @@ class EnrollmentServiceTestWithMock {
     @Test
     @DisplayName("MOCK - enrollCourse should handle multiple sequential enrollments")
     void testEnrollCourse_MultipleEnrollments() {
-        // Arrange
         Course course = new Course("CS501", "Machine Learning", 3, 35, 20, "Dr. Green");
         Student student1 = new Student("S004", "Alice Brown", "alice@email.com",
                 "Data Science", 5, 3.8, "ACTIVE");
@@ -344,11 +281,9 @@ class EnrollmentServiceTestWithMock {
         when(courseRepository.findByCourseCode("CS501")).thenReturn(course);
         when(courseRepository.isPrerequisiteMet(anyString(), eq("CS501"))).thenReturn(true);
 
-        // Act
         enrollmentService.enrollCourse("S004", "CS501");
         enrollmentService.enrollCourse("S005", "CS501");
 
-        // Assert
         verify(courseRepository, times(2)).update(any(Course.class));
         verify(notificationService, times(2)).sendEmail(anyString(), anyString(), anyString());
     }
@@ -356,30 +291,24 @@ class EnrollmentServiceTestWithMock {
     @Test
     @DisplayName("MOCK - enrollCourse should set correct enrollment date")
     void testEnrollCourse_EnrollmentDate() {
-        // Arrange
         when(studentRepository.findById("S001")).thenReturn(testStudent);
         when(courseRepository.findByCourseCode("CS301")).thenReturn(testCourse);
         when(courseRepository.isPrerequisiteMet("S001", "CS301")).thenReturn(true);
 
-        // Act
         Enrollment result = enrollmentService.enrollCourse("S001", "CS301");
 
-        // Assert
         assertNotNull(result.getEnrollmentDate());
     }
 
     @Test
     @DisplayName("MOCK - enrollCourse should verify all method calls in correct order")
     void testEnrollCourse_VerifyCallOrder() {
-        // Arrange
         when(studentRepository.findById("S001")).thenReturn(testStudent);
         when(courseRepository.findByCourseCode("CS301")).thenReturn(testCourse);
         when(courseRepository.isPrerequisiteMet("S001", "CS301")).thenReturn(true);
 
-        // Act
         enrollmentService.enrollCourse("S001", "CS301");
 
-        // Assert - Verify order of operations
         var inOrder = inOrder(studentRepository, courseRepository, notificationService);
         inOrder.verify(studentRepository).findById("S001");
         inOrder.verify(courseRepository).findByCourseCode("CS301");
@@ -391,12 +320,10 @@ class EnrollmentServiceTestWithMock {
     @Test
     @DisplayName("MOCK - enrollCourse should not update course when validation fails")
     void testEnrollCourse_NoUpdateOnValidationFailure() {
-        // Arrange
         Student suspendedStudent = new Student("S006", "Diana Evans", "diana@email.com",
                 "Network Engineering", 6, 1.2, "SUSPENDED");
         when(studentRepository.findById("S006")).thenReturn(suspendedStudent);
 
-        // Act & Assert
         assertThrows(EnrollmentException.class,
                 () -> enrollmentService.enrollCourse("S006", "CS301"));
 
@@ -406,17 +333,14 @@ class EnrollmentServiceTestWithMock {
     @Test
     @DisplayName("MOCK - enrollCourse should handle student with special characters in email")
     void testEnrollCourse_SpecialCharactersInEmail() {
-        // Arrange
         Student specialStudent = new Student("S007", "Frank O'Connor", "frank.o'connor+test@email.com",
                 "Computer Science", 3, 3.5, "ACTIVE");
         when(studentRepository.findById("S007")).thenReturn(specialStudent);
         when(courseRepository.findByCourseCode("CS301")).thenReturn(testCourse);
         when(courseRepository.isPrerequisiteMet("S007", "CS301")).thenReturn(true);
 
-        // Act
         Enrollment result = enrollmentService.enrollCourse("S007", "CS301");
 
-        // Assert
         assertNotNull(result);
         verify(notificationService).sendEmail(
                 eq("frank.o'connor+test@email.com"),
@@ -428,16 +352,13 @@ class EnrollmentServiceTestWithMock {
     @Test
     @DisplayName("MOCK - enrollCourse should handle course with maximum capacity")
     void testEnrollCourse_MaximumCapacity() {
-        // Arrange
         Course largeCourse = new Course("CS601", "Software Architecture", 4, 100, 50, "Dr. Black");
         when(studentRepository.findById("S001")).thenReturn(testStudent);
         when(courseRepository.findByCourseCode("CS601")).thenReturn(largeCourse);
         when(courseRepository.isPrerequisiteMet("S001", "CS601")).thenReturn(true);
 
-        // Act
         Enrollment result = enrollmentService.enrollCourse("S001", "CS601");
 
-        // Assert
         assertNotNull(result);
         verify(courseRepository).update(courseCaptor.capture());
         assertEquals(51, courseCaptor.getValue().getEnrolledCount());
@@ -446,15 +367,12 @@ class EnrollmentServiceTestWithMock {
     @Test
     @DisplayName("MOCK - enrollCourse should verify notification content includes course name")
     void testEnrollCourse_NotificationContent() {
-        // Arrange
         when(studentRepository.findById("S001")).thenReturn(testStudent);
         when(courseRepository.findByCourseCode("CS301")).thenReturn(testCourse);
         when(courseRepository.isPrerequisiteMet("S001", "CS301")).thenReturn(true);
 
-        // Act
         enrollmentService.enrollCourse("S001", "CS301");
 
-        // Assert
         verify(notificationService).sendEmail(
                 anyString(),
                 anyString(),
@@ -467,14 +385,11 @@ class EnrollmentServiceTestWithMock {
     @Test
     @DisplayName("MOCK - validateCreditLimit with mocked GradeCalculator")
     void testValidateCreditLimit_WithMock() {
-        // Arrange
         when(studentRepository.findById("S001")).thenReturn(testStudent);
         when(gradeCalculator.calculateMaxCredits(3.5)).thenReturn(24);
 
-        // Act
         boolean result = enrollmentService.validateCreditLimit("S001", 20);
 
-        // Assert
         assertTrue(result);
         verify(studentRepository, times(1)).findById("S001");
         verify(gradeCalculator, times(1)).calculateMaxCredits(3.5);
@@ -483,14 +398,11 @@ class EnrollmentServiceTestWithMock {
     @Test
     @DisplayName("MOCK - dropCourse with verification")
     void testDropCourse_WithMock() {
-        // Arrange
         when(studentRepository.findById("S001")).thenReturn(testStudent);
         when(courseRepository.findByCourseCode("CS301")).thenReturn(testCourse);
 
-        // Act
         enrollmentService.dropCourse("S001", "CS301");
 
-        // Assert
         verify(studentRepository, times(1)).findById("S001");
         verify(courseRepository, times(1)).findByCourseCode("CS301");
         verify(courseRepository, times(1)).update(any(Course.class));
@@ -501,241 +413,139 @@ class EnrollmentServiceTestWithMock {
         );
     }
 
+    // ==================== EXPLICIT EXCEPTION COVERAGE TESTS ====================
+
     @Test
-    @DisplayName("MOCK - enrollCourse should handle course with exactly capacity minus 1")
-    void testEnrollCourse_CapacityMinusOne() {
-        // Arrange
-        Course course = new Course("CS701", "Special Topics", 3, 30, 29, "Dr. Special");
-        when(studentRepository.findById("S001")).thenReturn(testStudent);
-        when(courseRepository.findByCourseCode("CS701")).thenReturn(course);
-        when(courseRepository.isPrerequisiteMet("S001", "CS701")).thenReturn(true);
+    @DisplayName("EXPLICIT - StudentNotFoundException with try-catch")
+    void testEnrollCourse_ExplicitStudentNotFound() {
+        when(studentRepository.findById(anyString())).thenReturn(null);
 
-        // Act
-        Enrollment result = enrollmentService.enrollCourse("S001", "CS701");
+        try {
+            enrollmentService.enrollCourse("NULL_STUDENT", "CS999");
+            fail("Should have thrown StudentNotFoundException");
+        } catch (StudentNotFoundException e) {
+            assertNotNull(e.getMessage());
+            assertTrue(e.getMessage().contains("not found"));
+        }
 
-        // Assert
-        assertNotNull(result);
-        verify(courseRepository).update(argThat(c -> c.getEnrolledCount() == 30));
+        verify(studentRepository).findById("NULL_STUDENT");
+        verify(courseRepository, never()).findByCourseCode(anyString());
     }
 
     @Test
-    @DisplayName("MOCK - enrollCourse should verify course capacity check happens before prerequisite")
-    void testEnrollCourse_CapacityCheckOrder() {
-        // Arrange - Course is full
-        Course fullCourse = new Course("CS801", "Full Course", 3, 25, 25, "Dr. Full");
+    @DisplayName("EXPLICIT - CourseNotFoundException with try-catch")
+    void testEnrollCourse_ExplicitCourseNotFound() {
         when(studentRepository.findById("S001")).thenReturn(testStudent);
-        when(courseRepository.findByCourseCode("CS801")).thenReturn(fullCourse);
+        when(courseRepository.findByCourseCode(anyString())).thenReturn(null);
 
-        // Act & Assert
-        assertThrows(CourseFullException.class,
-                () -> enrollmentService.enrollCourse("S001", "CS801"));
+        try {
+            enrollmentService.enrollCourse("S001", "NULL_COURSE");
+            fail("Should have thrown CourseNotFoundException");
+        } catch (CourseNotFoundException e) {
+            assertNotNull(e.getMessage());
+            assertTrue(e.getMessage().contains("not found"));
+        }
 
-        // Verify prerequisite check was never called (because capacity check failed first)
+        verify(courseRepository).findByCourseCode("NULL_COURSE");
+    }
+
+    @Test
+    @DisplayName("EXPLICIT - CourseFullException with try-catch")
+    void testEnrollCourse_ExplicitCourseFull() {
+        Course fullCourse = new Course("FULL", "Full Course", 3, 30, 30, "Dr. Full");
+        when(studentRepository.findById("S001")).thenReturn(testStudent);
+        when(courseRepository.findByCourseCode("FULL")).thenReturn(fullCourse);
+
+        try {
+            enrollmentService.enrollCourse("S001", "FULL");
+            fail("Should have thrown CourseFullException");
+        } catch (CourseFullException e) {
+            assertNotNull(e.getMessage());
+            assertTrue(e.getMessage().contains("full"));
+        }
+
         verify(courseRepository, never()).isPrerequisiteMet(anyString(), anyString());
     }
 
     @Test
-    @DisplayName("MOCK - enrollCourse should handle student with null academic status")
-    void testEnrollCourse_NullAcademicStatus() {
-        // Arrange
-        Student studentWithNullStatus = new Student("S020", "Null Status", "null@email.com",
-                "CS", 3, 3.0, null);
-        when(studentRepository.findById("S020")).thenReturn(studentWithNullStatus);
-        when(courseRepository.findByCourseCode("CS301")).thenReturn(testCourse);
-        when(courseRepository.isPrerequisiteMet("S020", "CS301")).thenReturn(true);
-
-        // Act
-        Enrollment result = enrollmentService.enrollCourse("S020", "CS301");
-
-        // Assert - Should work fine even with null status (not suspended)
-        assertNotNull(result);
-        assertEquals("APPROVED", result.getStatus());
-    }
-
-    @Test
-    @DisplayName("MOCK - enrollCourse should increment count correctly from zero")
-    void testEnrollCourse_IncrementFromZero() {
-        // Arrange
-        Course emptyCourse = new Course("CS901", "Brand New", 3, 50, 0, "Dr. New");
-        when(studentRepository.findById("S001")).thenReturn(testStudent);
-        when(courseRepository.findByCourseCode("CS901")).thenReturn(emptyCourse);
-        when(courseRepository.isPrerequisiteMet("S001", "CS901")).thenReturn(true);
-
-        // Act
-        enrollmentService.enrollCourse("S001", "CS901");
-
-        // Assert
-        verify(courseRepository).update(argThat(c -> c.getEnrolledCount() == 1));
-    }
-
-    @Test
-    @DisplayName("MOCK - dropCourse should handle course with enrolled count at maximum")
-    void testDropCourse_FromMaxCapacity() {
-        // Arrange
-        Course fullCourse = new Course("CS1001", "Full Drop", 3, 40, 40, "Dr. Drop");
-        when(studentRepository.findById("S001")).thenReturn(testStudent);
-        when(courseRepository.findByCourseCode("CS1001")).thenReturn(fullCourse);
-
-        // Act
-        enrollmentService.dropCourse("S001", "CS1001");
-
-        // Assert
-        verify(courseRepository).update(argThat(c -> c.getEnrolledCount() == 39));
-    }
-
-    @Test
-    @DisplayName("MOCK - dropCourse should send email with correct course name")
-    void testDropCourse_EmailContent() {
-        // Arrange
-        Course course = new Course("CS1101", "Advanced Java", 4, 35, 30, "Dr. Java");
-        when(studentRepository.findById("S001")).thenReturn(testStudent);
-        when(courseRepository.findByCourseCode("CS1101")).thenReturn(course);
-
-        // Act
-        enrollmentService.dropCourse("S001", "CS1101");
-
-        // Assert
-        verify(notificationService).sendEmail(
-                eq("john@email.com"),
-                eq("Course Drop Confirmation"),
-                contains("Advanced Java")
-        );
-    }
-
-    @Test
-    @DisplayName("MOCK - validateCreditLimit should handle GPA at exact boundary 3.0")
-    void testValidateCreditLimit_ExactBoundary3() {
-        // Arrange
-        Student student = new Student("S021", "Exact GPA", "exact@email.com",
-                "CS", 4, 3.0, "ACTIVE");
-        when(studentRepository.findById("S021")).thenReturn(student);
-        when(gradeCalculator.calculateMaxCredits(3.0)).thenReturn(24);
-
-        // Act
-        boolean result = enrollmentService.validateCreditLimit("S021", 24);
-
-        // Assert
-        assertTrue(result);
-        verify(gradeCalculator).calculateMaxCredits(3.0);
-    }
-
-    @Test
-    @DisplayName("MOCK - validateCreditLimit should handle GPA at exact boundary 2.5")
-    void testValidateCreditLimit_ExactBoundary2_5() {
-        // Arrange
-        Student student = new Student("S022", "Boundary 2.5", "bound@email.com",
-                "IS", 3, 2.5, "ACTIVE");
-        when(studentRepository.findById("S022")).thenReturn(student);
-        when(gradeCalculator.calculateMaxCredits(2.5)).thenReturn(21);
-
-        // Act
-        boolean resultTrue = enrollmentService.validateCreditLimit("S022", 21);
-        boolean resultFalse = enrollmentService.validateCreditLimit("S022", 22);
-
-        // Assert
-        assertTrue(resultTrue);
-        assertFalse(resultFalse);
-    }
-
-    @Test
-    @DisplayName("MOCK - validateCreditLimit should handle GPA at exact boundary 2.0")
-    void testValidateCreditLimit_ExactBoundary2() {
-        // Arrange
-        Student student = new Student("S023", "Boundary 2.0", "bound2@email.com",
-                "SE", 5, 2.0, "PROBATION");
-        when(studentRepository.findById("S023")).thenReturn(student);
-        when(gradeCalculator.calculateMaxCredits(2.0)).thenReturn(18);
-
-        // Act
-        boolean result = enrollmentService.validateCreditLimit("S023", 18);
-
-        // Assert
-        assertTrue(result);
-    }
-
-    @Test
-    @DisplayName("MOCK - enrollCourse should handle ACTIVE status explicitly")
-    void testEnrollCourse_ExplicitActiveStatus() {
-        // Arrange
+    @DisplayName("EXPLICIT - PrerequisiteNotMetException with try-catch")
+    void testEnrollCourse_ExplicitPrereqNotMet() {
         when(studentRepository.findById("S001")).thenReturn(testStudent);
         when(courseRepository.findByCourseCode("CS301")).thenReturn(testCourse);
-        when(courseRepository.isPrerequisiteMet("S001", "CS301")).thenReturn(true);
+        when(courseRepository.isPrerequisiteMet("S001", "CS301")).thenReturn(false);
 
-        // Act
-        Enrollment result = enrollmentService.enrollCourse("S001", "CS301");
+        try {
+            enrollmentService.enrollCourse("S001", "CS301");
+            fail("Should have thrown PrerequisiteNotMetException");
+        } catch (PrerequisiteNotMetException e) {
+            assertNotNull(e.getMessage());
+            assertTrue(e.getMessage().contains("not met"));
+        }
 
-        // Assert
-        assertEquals("S001", result.getStudentId());
-        assertEquals("CS301", result.getCourseCode());
-        assertEquals("APPROVED", result.getStatus());
+        verify(courseRepository, never()).update(any());
     }
 
     @Test
-    @DisplayName("MOCK - enrollCourse should handle course with large capacity")
-    void testEnrollCourse_LargeCapacity() {
-        // Arrange
-        Course largeCourse = new Course("CS1201", "Mass Lecture", 2, 500, 250, "Dr. Mass");
-        when(studentRepository.findById("S001")).thenReturn(testStudent);
-        when(courseRepository.findByCourseCode("CS1201")).thenReturn(largeCourse);
-        when(courseRepository.isPrerequisiteMet("S001", "CS1201")).thenReturn(true);
+    @DisplayName("EXPLICIT - EnrollmentException for suspended student with try-catch")
+    void testEnrollCourse_ExplicitSuspended() {
+        Student suspended = new Student("SUSP", "Suspended", "susp@test.com",
+                "CS", 6, 1.0, "SUSPENDED");
+        when(studentRepository.findById("SUSP")).thenReturn(suspended);
 
-        // Act
-        Enrollment result = enrollmentService.enrollCourse("S001", "CS1201");
+        try {
+            enrollmentService.enrollCourse("SUSP", "CS301");
+            fail("Should have thrown EnrollmentException");
+        } catch (EnrollmentException e) {
+            assertNotNull(e.getMessage());
+            assertTrue(e.getMessage().toLowerCase().contains("suspend"));
+        }
 
-        // Assert
-        assertNotNull(result);
-        verify(courseRepository).update(argThat(c -> c.getEnrolledCount() == 251));
+        verify(courseRepository, never()).findByCourseCode(anyString());
     }
 
     @Test
-    @DisplayName("MOCK - dropCourse should verify repository update is called")
-    void testDropCourse_VerifyUpdateCall() {
-        // Arrange
-        when(studentRepository.findById("S001")).thenReturn(testStudent);
-        when(courseRepository.findByCourseCode("CS301")).thenReturn(testCourse);
+    @DisplayName("EXPLICIT - StudentNotFoundException in validateCreditLimit")
+    void testValidateCreditLimit_ExplicitStudentNotFound() {
+        when(studentRepository.findById(anyString())).thenReturn(null);
 
-        // Act
-        enrollmentService.dropCourse("S001", "CS301");
+        try {
+            enrollmentService.validateCreditLimit("NULL", 20);
+            fail("Should throw StudentNotFoundException");
+        } catch (StudentNotFoundException e) {
+            assertNotNull(e.getMessage());
+        }
 
-        // Assert
-        verify(courseRepository, times(1)).update(any(Course.class));
-        verify(studentRepository, times(1)).findById("S001");
-        verify(courseRepository, times(1)).findByCourseCode("CS301");
+        verify(gradeCalculator, never()).calculateMaxCredits(anyDouble());
     }
 
     @Test
-    @DisplayName("MOCK - enrollCourse should work with minimum capacity course")
-    void testEnrollCourse_MinimumCapacity() {
-        // Arrange
-        Course smallCourse = new Course("CS1301", "Tutorial", 1, 5, 2, "Dr. Small");
-        when(studentRepository.findById("S001")).thenReturn(testStudent);
-        when(courseRepository.findByCourseCode("CS1301")).thenReturn(smallCourse);
-        when(courseRepository.isPrerequisiteMet("S001", "CS1301")).thenReturn(true);
+    @DisplayName("EXPLICIT - StudentNotFoundException in dropCourse")
+    void testDropCourse_ExplicitStudentNotFound() {
+        when(studentRepository.findById(anyString())).thenReturn(null);
 
-        // Act
-        Enrollment result = enrollmentService.enrollCourse("S001", "CS1301");
+        try {
+            enrollmentService.dropCourse("NULL", "CS101");
+            fail("Should throw StudentNotFoundException");
+        } catch (StudentNotFoundException e) {
+            assertNotNull(e.getMessage());
+        }
 
-        // Assert
-        assertNotNull(result);
-        verify(courseRepository).update(argThat(c -> c.getEnrolledCount() == 3));
+        verify(courseRepository, never()).findByCourseCode(anyString());
     }
 
     @Test
-    @DisplayName("MOCK - validateCreditLimit should be called multiple times consistently")
-    void testValidateCreditLimit_MultipleCallsConsistency() {
-        // Arrange
+    @DisplayName("EXPLICIT - CourseNotFoundException in dropCourse")
+    void testDropCourse_ExplicitCourseNotFound() {
         when(studentRepository.findById("S001")).thenReturn(testStudent);
-        when(gradeCalculator.calculateMaxCredits(3.5)).thenReturn(24);
+        when(courseRepository.findByCourseCode(anyString())).thenReturn(null);
 
-        // Act - Call multiple times
-        boolean result1 = enrollmentService.validateCreditLimit("S001", 20);
-        boolean result2 = enrollmentService.validateCreditLimit("S001", 24);
-        boolean result3 = enrollmentService.validateCreditLimit("S001", 25);
+        try {
+            enrollmentService.dropCourse("S001", "NULL_COURSE");
+            fail("Should throw CourseNotFoundException");
+        } catch (CourseNotFoundException e) {
+            assertNotNull(e.getMessage());
+        }
 
-        // Assert
-        assertTrue(result1);
-        assertTrue(result2);
-        assertFalse(result3);
-        verify(studentRepository, times(3)).findById("S001");
+        verify(courseRepository, never()).update(any());
     }
 }

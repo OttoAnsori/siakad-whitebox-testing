@@ -17,11 +17,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-/**
- * Integration Test untuk EnrollmentService
- * Kombinasi Mock dan Real Objects untuk skenario kompleks
- * Target: Meningkatkan coverage ke 95%++
- */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("EnrollmentService Integration Tests")
 class EnrollmentServiceIntegrationTest {

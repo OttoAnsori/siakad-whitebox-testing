@@ -17,11 +17,6 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Unit Test untuk EnrollmentService menggunakan STUB
- * STUB = Manual implementation dari interface repository
- * Target Coverage: 85-90% untuk method validateCreditLimit() dan dropCourse()
- */
 @DisplayName("EnrollmentService Tests with STUB")
 class EnrollmentServiceTestWithStub {
 
@@ -31,12 +26,6 @@ class EnrollmentServiceTestWithStub {
     private NotificationServiceStub notificationServiceStub;
     private GradeCalculator gradeCalculator;
 
-    // ==================== STUB IMPLEMENTATIONS ====================
-
-    /**
-     * STUB untuk StudentRepository
-     * Ini adalah manual implementation untuk testing
-     */
     class StudentRepositoryStub implements StudentRepository {
         private Map<String, Student> students = new HashMap<>();
 
@@ -60,9 +49,6 @@ class EnrollmentServiceTestWithStub {
         }
     }
 
-    /**
-     * STUB untuk CourseRepository
-     */
     class CourseRepositoryStub implements CourseRepository {
         private Map<String, Course> courses = new HashMap<>();
 

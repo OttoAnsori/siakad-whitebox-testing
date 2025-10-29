@@ -8,14 +8,8 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Unit Test untuk Model Classes
- * Target: Meningkatkan coverage Model dari 48% ke 95%+
- */
 @DisplayName("Model Classes Unit Tests")
 class ModelClassesTest {
-
-    // ==================== Student Model Tests ====================
 
     @Test
     @DisplayName("Student - Should create student with constructor")

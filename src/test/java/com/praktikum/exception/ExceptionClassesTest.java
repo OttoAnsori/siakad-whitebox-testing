@@ -5,14 +5,8 @@ import org.junit.jupiter.api.DisplayName;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Unit Test untuk Exception Classes
- * Target: Meningkatkan coverage Exception dari 8% ke 100%
- */
 @DisplayName("Exception Classes Unit Tests")
 class ExceptionClassesTest {
-
-    // ==================== CourseFullException Tests ====================
 
     @Test
     @DisplayName("CourseFullException - Should create with message")
