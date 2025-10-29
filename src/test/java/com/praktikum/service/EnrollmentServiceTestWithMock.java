@@ -501,4 +501,242 @@ class EnrollmentServiceTestWithMock {
                 contains("Algorithm Design")
         );
     }
+
+    @Test
+    @DisplayName("MOCK - enrollCourse should handle course with exactly capacity minus 1")
+    void testEnrollCourse_CapacityMinusOne() {
+        // Arrange
+        Course course = new Course("CS701", "Special Topics", 3, 30, 29, "Dr. Special");
+        when(studentRepository.findById("S001")).thenReturn(testStudent);
+        when(courseRepository.findByCourseCode("CS701")).thenReturn(course);
+        when(courseRepository.isPrerequisiteMet("S001", "CS701")).thenReturn(true);
+
+        // Act
+        Enrollment result = enrollmentService.enrollCourse("S001", "CS701");
+
+        // Assert
+        assertNotNull(result);
+        verify(courseRepository).update(argThat(c -> c.getEnrolledCount() == 30));
+    }
+
+    @Test
+    @DisplayName("MOCK - enrollCourse should verify course capacity check happens before prerequisite")
+    void testEnrollCourse_CapacityCheckOrder() {
+        // Arrange - Course is full
+        Course fullCourse = new Course("CS801", "Full Course", 3, 25, 25, "Dr. Full");
+        when(studentRepository.findById("S001")).thenReturn(testStudent);
+        when(courseRepository.findByCourseCode("CS801")).thenReturn(fullCourse);
+
+        // Act & Assert
+        assertThrows(CourseFullException.class,
+                () -> enrollmentService.enrollCourse("S001", "CS801"));
+
+        // Verify prerequisite check was never called (because capacity check failed first)
+        verify(courseRepository, never()).isPrerequisiteMet(anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("MOCK - enrollCourse should handle student with null academic status")
+    void testEnrollCourse_NullAcademicStatus() {
+        // Arrange
+        Student studentWithNullStatus = new Student("S020", "Null Status", "null@email.com",
+                "CS", 3, 3.0, null);
+        when(studentRepository.findById("S020")).thenReturn(studentWithNullStatus);
+        when(courseRepository.findByCourseCode("CS301")).thenReturn(testCourse);
+        when(courseRepository.isPrerequisiteMet("S020", "CS301")).thenReturn(true);
+
+        // Act
+        Enrollment result = enrollmentService.enrollCourse("S020", "CS301");
+
+        // Assert - Should work fine even with null status (not suspended)
+        assertNotNull(result);
+        assertEquals("APPROVED", result.getStatus());
+    }
+
+    @Test
+    @DisplayName("MOCK - enrollCourse should increment count correctly from zero")
+    void testEnrollCourse_IncrementFromZero() {
+        // Arrange
+        Course emptyCourse = new Course("CS901", "Brand New", 3, 50, 0, "Dr. New");
+        when(studentRepository.findById("S001")).thenReturn(testStudent);
+        when(courseRepository.findByCourseCode("CS901")).thenReturn(emptyCourse);
+        when(courseRepository.isPrerequisiteMet("S001", "CS901")).thenReturn(true);
+
+        // Act
+        enrollmentService.enrollCourse("S001", "CS901");
+
+        // Assert
+        verify(courseRepository).update(argThat(c -> c.getEnrolledCount() == 1));
+    }
+
+    @Test
+    @DisplayName("MOCK - dropCourse should handle course with enrolled count at maximum")
+    void testDropCourse_FromMaxCapacity() {
+        // Arrange
+        Course fullCourse = new Course("CS1001", "Full Drop", 3, 40, 40, "Dr. Drop");
+        when(studentRepository.findById("S001")).thenReturn(testStudent);
+        when(courseRepository.findByCourseCode("CS1001")).thenReturn(fullCourse);
+
+        // Act
+        enrollmentService.dropCourse("S001", "CS1001");
+
+        // Assert
+        verify(courseRepository).update(argThat(c -> c.getEnrolledCount() == 39));
+    }
+
+    @Test
+    @DisplayName("MOCK - dropCourse should send email with correct course name")
+    void testDropCourse_EmailContent() {
+        // Arrange
+        Course course = new Course("CS1101", "Advanced Java", 4, 35, 30, "Dr. Java");
+        when(studentRepository.findById("S001")).thenReturn(testStudent);
+        when(courseRepository.findByCourseCode("CS1101")).thenReturn(course);
+
+        // Act
+        enrollmentService.dropCourse("S001", "CS1101");
+
+        // Assert
+        verify(notificationService).sendEmail(
+                eq("john@email.com"),
+                eq("Course Drop Confirmation"),
+                contains("Advanced Java")
+        );
+    }
+
+    @Test
+    @DisplayName("MOCK - validateCreditLimit should handle GPA at exact boundary 3.0")
+    void testValidateCreditLimit_ExactBoundary3() {
+        // Arrange
+        Student student = new Student("S021", "Exact GPA", "exact@email.com",
+                "CS", 4, 3.0, "ACTIVE");
+        when(studentRepository.findById("S021")).thenReturn(student);
+        when(gradeCalculator.calculateMaxCredits(3.0)).thenReturn(24);
+
+        // Act
+        boolean result = enrollmentService.validateCreditLimit("S021", 24);
+
+        // Assert
+        assertTrue(result);
+        verify(gradeCalculator).calculateMaxCredits(3.0);
+    }
+
+    @Test
+    @DisplayName("MOCK - validateCreditLimit should handle GPA at exact boundary 2.5")
+    void testValidateCreditLimit_ExactBoundary2_5() {
+        // Arrange
+        Student student = new Student("S022", "Boundary 2.5", "bound@email.com",
+                "IS", 3, 2.5, "ACTIVE");
+        when(studentRepository.findById("S022")).thenReturn(student);
+        when(gradeCalculator.calculateMaxCredits(2.5)).thenReturn(21);
+
+        // Act
+        boolean resultTrue = enrollmentService.validateCreditLimit("S022", 21);
+        boolean resultFalse = enrollmentService.validateCreditLimit("S022", 22);
+
+        // Assert
+        assertTrue(resultTrue);
+        assertFalse(resultFalse);
+    }
+
+    @Test
+    @DisplayName("MOCK - validateCreditLimit should handle GPA at exact boundary 2.0")
+    void testValidateCreditLimit_ExactBoundary2() {
+        // Arrange
+        Student student = new Student("S023", "Boundary 2.0", "bound2@email.com",
+                "SE", 5, 2.0, "PROBATION");
+        when(studentRepository.findById("S023")).thenReturn(student);
+        when(gradeCalculator.calculateMaxCredits(2.0)).thenReturn(18);
+
+        // Act
+        boolean result = enrollmentService.validateCreditLimit("S023", 18);
+
+        // Assert
+        assertTrue(result);
+    }
+
+    @Test
+    @DisplayName("MOCK - enrollCourse should handle ACTIVE status explicitly")
+    void testEnrollCourse_ExplicitActiveStatus() {
+        // Arrange
+        when(studentRepository.findById("S001")).thenReturn(testStudent);
+        when(courseRepository.findByCourseCode("CS301")).thenReturn(testCourse);
+        when(courseRepository.isPrerequisiteMet("S001", "CS301")).thenReturn(true);
+
+        // Act
+        Enrollment result = enrollmentService.enrollCourse("S001", "CS301");
+
+        // Assert
+        assertEquals("S001", result.getStudentId());
+        assertEquals("CS301", result.getCourseCode());
+        assertEquals("APPROVED", result.getStatus());
+    }
+
+    @Test
+    @DisplayName("MOCK - enrollCourse should handle course with large capacity")
+    void testEnrollCourse_LargeCapacity() {
+        // Arrange
+        Course largeCourse = new Course("CS1201", "Mass Lecture", 2, 500, 250, "Dr. Mass");
+        when(studentRepository.findById("S001")).thenReturn(testStudent);
+        when(courseRepository.findByCourseCode("CS1201")).thenReturn(largeCourse);
+        when(courseRepository.isPrerequisiteMet("S001", "CS1201")).thenReturn(true);
+
+        // Act
+        Enrollment result = enrollmentService.enrollCourse("S001", "CS1201");
+
+        // Assert
+        assertNotNull(result);
+        verify(courseRepository).update(argThat(c -> c.getEnrolledCount() == 251));
+    }
+
+    @Test
+    @DisplayName("MOCK - dropCourse should verify repository update is called")
+    void testDropCourse_VerifyUpdateCall() {
+        // Arrange
+        when(studentRepository.findById("S001")).thenReturn(testStudent);
+        when(courseRepository.findByCourseCode("CS301")).thenReturn(testCourse);
+
+        // Act
+        enrollmentService.dropCourse("S001", "CS301");
+
+        // Assert
+        verify(courseRepository, times(1)).update(any(Course.class));
+        verify(studentRepository, times(1)).findById("S001");
+        verify(courseRepository, times(1)).findByCourseCode("CS301");
+    }
+
+    @Test
+    @DisplayName("MOCK - enrollCourse should work with minimum capacity course")
+    void testEnrollCourse_MinimumCapacity() {
+        // Arrange
+        Course smallCourse = new Course("CS1301", "Tutorial", 1, 5, 2, "Dr. Small");
+        when(studentRepository.findById("S001")).thenReturn(testStudent);
+        when(courseRepository.findByCourseCode("CS1301")).thenReturn(smallCourse);
+        when(courseRepository.isPrerequisiteMet("S001", "CS1301")).thenReturn(true);
+
+        // Act
+        Enrollment result = enrollmentService.enrollCourse("S001", "CS1301");
+
+        // Assert
+        assertNotNull(result);
+        verify(courseRepository).update(argThat(c -> c.getEnrolledCount() == 3));
+    }
+
+    @Test
+    @DisplayName("MOCK - validateCreditLimit should be called multiple times consistently")
+    void testValidateCreditLimit_MultipleCallsConsistency() {
+        // Arrange
+        when(studentRepository.findById("S001")).thenReturn(testStudent);
+        when(gradeCalculator.calculateMaxCredits(3.5)).thenReturn(24);
+
+        // Act - Call multiple times
+        boolean result1 = enrollmentService.validateCreditLimit("S001", 20);
+        boolean result2 = enrollmentService.validateCreditLimit("S001", 24);
+        boolean result3 = enrollmentService.validateCreditLimit("S001", 25);
+
+        // Assert
+        assertTrue(result1);
+        assertTrue(result2);
+        assertFalse(result3);
+        verify(studentRepository, times(3)).findById("S001");
+    }
 }
