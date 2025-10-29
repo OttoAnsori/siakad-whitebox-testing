@@ -361,4 +361,121 @@ class EnrollmentServiceTestWithStub {
         Course updatedCourse = courseRepositoryStub.findByCourseCode("NET401");
         assertEquals(initialCount - 1, updatedCourse.getEnrolledCount());
     }
+
+    // ==================== Additional Stub Tests for Higher Coverage ====================
+
+    @Test
+    @DisplayName("STUB - dropCourse should handle multiple drops in sequence")
+    void testDropCourse_MultipleSequence() {
+        // Arrange
+        Student student = new Student("S020", "Multi Drop", "multi@email.com",
+                "CS", 4, 3.2, "ACTIVE");
+        studentRepositoryStub.addStudent(student);
+
+        Course course1 = new Course("CS401", "OS", 3, 40, 30, "Dr. OS");
+        Course course2 = new Course("CS402", "DB", 3, 35, 28, "Dr. DB");
+        Course course3 = new Course("CS403", "Net", 3, 30, 25, "Dr. Net");
+        courseRepositoryStub.addCourse(course1);
+        courseRepositoryStub.addCourse(course2);
+        courseRepositoryStub.addCourse(course3);
+
+        // Act
+        enrollmentService.dropCourse("S020", "CS401");
+        enrollmentService.dropCourse("S020", "CS402");
+        enrollmentService.dropCourse("S020", "CS403");
+
+        // Assert
+        assertEquals(29, courseRepositoryStub.findByCourseCode("CS401").getEnrolledCount());
+        assertEquals(27, courseRepositoryStub.findByCourseCode("CS402").getEnrolledCount());
+        assertEquals(24, courseRepositoryStub.findByCourseCode("CS403").getEnrolledCount());
+        assertEquals(3, notificationServiceStub.emailSentCount);
+    }
+
+    @Test
+    @DisplayName("STUB - validateCreditLimit with GPA exactly at boundaries")
+    void testValidateCreditLimit_AllBoundaries() {
+        // Test GPA 3.0 (boundary for 24 credits)
+        Student s1 = new Student("S021", "GPA 3.0", "s1@email.com", "CS", 4, 3.0, "ACTIVE");
+        studentRepositoryStub.addStudent(s1);
+        assertTrue(enrollmentService.validateCreditLimit("S021", 24));
+        assertFalse(enrollmentService.validateCreditLimit("S021", 25));
+
+        // Test GPA 2.5 (boundary for 21 credits)
+        Student s2 = new Student("S022", "GPA 2.5", "s2@email.com", "IS", 3, 2.5, "ACTIVE");
+        studentRepositoryStub.addStudent(s2);
+        assertTrue(enrollmentService.validateCreditLimit("S022", 21));
+        assertFalse(enrollmentService.validateCreditLimit("S022", 22));
+
+        // Test GPA 2.0 (boundary for 18 credits)
+        Student s3 = new Student("S023", "GPA 2.0", "s3@email.com", "SE", 5, 2.0, "PROBATION");
+        studentRepositoryStub.addStudent(s3);
+        assertTrue(enrollmentService.validateCreditLimit("S023", 18));
+        assertFalse(enrollmentService.validateCreditLimit("S023", 19));
+    }
+
+    @Test
+    @DisplayName("STUB - dropCourse from course with large enrolled count")
+    void testDropCourse_LargeEnrolledCount() {
+        // Arrange
+        Student student = new Student("S024", "Large Class", "large@email.com",
+                "DS", 3, 3.5, "ACTIVE");
+        studentRepositoryStub.addStudent(student);
+
+        Course largeCourse = new Course("DS501", "Data Mining", 4, 200, 150, "Dr. Big");
+        courseRepositoryStub.addCourse(largeCourse);
+
+        // Act
+        enrollmentService.dropCourse("S024", "DS501");
+
+        // Assert
+        assertEquals(149, courseRepositoryStub.findByCourseCode("DS501").getEnrolledCount());
+    }
+
+    @Test
+    @DisplayName("STUB - validateCreditLimit with zero credits requested")
+    void testValidateCreditLimit_ZeroCredits() {
+        // Arrange
+        Student student = new Student("S025", "Zero Test", "zero@email.com",
+                "CS", 2, 3.0, "ACTIVE");
+        studentRepositoryStub.addStudent(student);
+
+        // Act
+        boolean result = enrollmentService.validateCreditLimit("S025", 0);
+
+        // Assert
+        assertTrue(result); // 0 credits should always be within limit
+    }
+
+    @Test
+    @DisplayName("STUB - dropCourse should update course state correctly")
+    void testDropCourse_CourseStateUpdate() {
+        // Arrange
+        Student student = new Student("S026", "State Test", "state@email.com",
+                "NE", 4, 3.0, "ACTIVE");
+        studentRepositoryStub.addStudent(student);
+
+        Course course = new Course("NE301", "Networking", 3, 30, 20, "Dr. Network");
+        courseRepositoryStub.addCourse(course);
+
+        int beforeCount = course.getEnrolledCount();
+
+        // Act
+        enrollmentService.dropCourse("S026", "NE301");
+
+        // Assert
+        Course updatedCourse = courseRepositoryStub.findByCourseCode("NE301");
+        assertEquals(beforeCount - 1, updatedCourse.getEnrolledCount());
+    }
+
+    @Test
+    @DisplayName("STUB - validateCreditLimit edge case with exactly max credits")
+    void testValidateCreditLimit_ExactlyMax() {
+        // Arrange
+        Student student1 = new Student("S027", "Max Test", "max@email.com",
+                "CS", 3, 3.8, "ACTIVE");
+        studentRepositoryStub.addStudent(student1);
+
+        // Act & Assert - GPA 3.8 should allow 24 credits
+        assertTrue(enrollmentService.validateCreditLimit("S027", 24));
+    }
 }
