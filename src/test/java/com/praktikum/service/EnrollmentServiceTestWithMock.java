@@ -55,7 +55,6 @@ class EnrollmentServiceTestWithMock {
 
     @BeforeEach
     void setUp() {
-        // Setup default test data
         testStudent = new Student("S001", "John Doe", "john@email.com",
                 "Computer Science", 3, 3.5, "ACTIVE");
 
