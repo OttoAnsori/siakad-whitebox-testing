@@ -319,4 +319,76 @@ class EnrollmentServiceIntegrationTest {
         verify(courseRepository, times(3)).update(any(Course.class)); // 2 enrolls + 1 drop
         verify(notificationService, times(3)).sendEmail(anyString(), anyString(), anyString());
     }
+
+    // ==================== Additional Integration Tests ====================
+
+    @Test
+    @DisplayName("INTEGRATION - Enroll then drop then enroll again")
+    void testEnrollDropReEnroll() {
+        // Arrange
+        Student student = new Student("S200", "Flip Flop", "flip@email.com",
+                "CS", 3, 3.0, "ACTIVE");
+        Course course = new Course("CS2001", "Flip Course", 3, 30, 20, "Dr. Flip");
+
+        when(studentRepository.findById("S200")).thenReturn(student);
+        when(courseRepository.findByCourseCode("CS2001")).thenReturn(course);
+        when(courseRepository.isPrerequisiteMet("S200", "CS2001")).thenReturn(true);
+
+        // Act - Enroll, drop, enroll again
+        Enrollment e1 = enrollmentService.enrollCourse("S200", "CS2001");
+        enrollmentService.dropCourse("S200", "CS2001");
+        Enrollment e2 = enrollmentService.enrollCourse("S200", "CS2001");
+
+        // Assert
+        assertNotNull(e1);
+        assertNotNull(e2);
+        verify(courseRepository, times(3)).update(any(Course.class));
+    }
+
+    @Test
+    @DisplayName("INTEGRATION - Multiple credit limit validations")
+    void testMultipleCreditValidations() {
+        // Arrange
+        Student student = new Student("S201", "Validation Test", "valid@email.com",
+                "IS", 4, 2.7, "ACTIVE");
+        when(studentRepository.findById("S201")).thenReturn(student);
+
+        // Act - GPA 2.7 should allow 21 credits
+        boolean v1 = enrollmentService.validateCreditLimit("S201", 15);
+        boolean v2 = enrollmentService.validateCreditLimit("S201", 21);
+        boolean v3 = enrollmentService.validateCreditLimit("S201", 22);
+
+        // Assert
+        assertTrue(v1);
+        assertTrue(v2);
+        assertFalse(v3);
+    }
+
+    @Test
+    @DisplayName("INTEGRATION - Enroll multiple students in same course")
+    void testMultipleStudentsSameCourse() {
+        // Arrange
+        Student s1 = new Student("S202", "Student 1", "s1@test.com", "CS", 3, 3.0, "ACTIVE");
+        Student s2 = new Student("S203", "Student 2", "s2@test.com", "CS", 3, 3.2, "ACTIVE");
+        Student s3 = new Student("S204", "Student 3", "s3@test.com", "CS", 3, 3.5, "ACTIVE");
+        Course course = new Course("CS2002", "Popular", 3, 40, 20, "Dr. Popular");
+
+        when(studentRepository.findById("S202")).thenReturn(s1);
+        when(studentRepository.findById("S203")).thenReturn(s2);
+        when(studentRepository.findById("S204")).thenReturn(s3);
+        when(courseRepository.findByCourseCode("CS2002")).thenReturn(course);
+        when(courseRepository.isPrerequisiteMet(anyString(), eq("CS2002"))).thenReturn(true);
+
+        // Act
+        Enrollment e1 = enrollmentService.enrollCourse("S202", "CS2002");
+        Enrollment e2 = enrollmentService.enrollCourse("S203", "CS2002");
+        Enrollment e3 = enrollmentService.enrollCourse("S204", "CS2002");
+
+        // Assert
+        assertNotNull(e1);
+        assertNotNull(e2);
+        assertNotNull(e3);
+        verify(courseRepository, times(3)).update(any(Course.class));
+    }
+
 }
